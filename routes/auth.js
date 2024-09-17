@@ -2,14 +2,12 @@ const router = require("express").Router({
   mergeParams: true,
 });
 
-const { tenantExists, getDatabase } = require("../db/connectionManager");
+const { tenantExists } = require("../utils/user");
 const { generateToken } = require("../utils/jwt");
 
-const masterDbMiddleware = require("../middleware/masterDbMiddleware");
+const getTenantModel = require("../db/getTenantModel");
 
-router.use(masterDbMiddleware);
 router.post("/registration", async (req, res) => {
-  // Change the endpoint to /school-registration
   try {
     const { email, password, username, role = "SCHOOL" } = req.body;
     if (!email || !password || !username) {
@@ -18,22 +16,19 @@ router.post("/registration", async (req, res) => {
         .json("Email and password or username are required!"); // Validate it using JOI instead of this block.
     }
 
+    const User = getTenantModel("master", "user", "User");
+
     const doesTenantExist = await tenantExists(username, email);
 
-    const isEmailOrUsernameTaken =
-      doesTenantExist?.email === email
-        ? "Email"
-        : doesTenantExist
-        ? "Username"
-        : null;
-
-    if (isEmailOrUsernameTaken) {
+    if (doesTenantExist) {
       return res.status(400).json({
-        message: `${isEmailOrUsernameTaken} is already registered with us!`,
+        success: false,
+        message:
+          "Username is already taken, please enter a different username!",
       });
     }
 
-    const user = await req.db.collection("users").insertOne({
+    const user = await User.create({
       email,
       password,
       username,
@@ -61,7 +56,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json("Email and password are required!");
     }
 
-    const user = await req.db.collection("users").findOne({ email, password });
+    const User = getTenantModel("master", "user", "User");
+
+    const user = await User.findOne({ email, password });
+
     if (!user) {
       return res.status(401).json("Incorrect email or password!");
     }

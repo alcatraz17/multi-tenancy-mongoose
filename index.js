@@ -1,6 +1,7 @@
+require("dotenv").config();
 const express = require("express");
 const connectToDatabase = require("./db/connectionManager");
-const testRoutes = require("./routes/test");
+const routes = require("./routes/");
 
 const app = express();
 app.use(express.json());
@@ -11,7 +12,7 @@ app.use(express.json());
     console.log("Connected to MongoDB");
 
     // Use the test routes
-    app.use("/api", testRoutes);
+    app.use("/api", routes);
 
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
