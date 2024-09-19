@@ -1,15 +1,19 @@
-const { getDatabase } = require("../db/connectionManager");
+const mongoose = require("mongoose");
+const { snakeCase } = require("lodash");
+
+const schemas = require("../schemas");
 
 async function masterDbMiddleware(req, res, next) {
-  try {
-    req.db = await getDatabase("master");
-    next();
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to connect to the master database",
-    });
+  const db = mongoose.connection.useDb("master");
+
+  const models = {};
+  for (const [modelName, schema] of Object.entries(schemas)) {
+    models[modelName] = db.model(modelName, schema, snakeCase(modelName));
   }
+
+  req.db = models;
+
+  next();
 }
 
 module.exports = masterDbMiddleware;

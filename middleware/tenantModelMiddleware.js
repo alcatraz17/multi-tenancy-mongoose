@@ -1,10 +1,20 @@
 const mongoose = require("mongoose");
+const { snakeCase } = require("lodash");
 
-const getTenantModel = (tenantId, modelName, schemaName) => {
-  const schema = require(`../models/${schemaName}`);
+const schemas = require("../schemas");
 
+const tenantModelMiddleware = (req, res, next) => {
+  const { tenantId } = req.user;
   const db = mongoose.connection.useDb(tenantId);
-  return db.model(modelName, schema);
+
+  const models = {};
+  for (const [modelName, schema] of Object.entries(schemas)) {
+    models[modelName] = db.model(modelName, schema, snakeCase(modelName));
+  }
+
+  req.db = models;
+
+  next();
 };
 
-module.exports = getTenantModel;
+module.exports = tenantModelMiddleware;

@@ -1,5 +1,5 @@
 const { getDatabase } = require("../db/connectionManager");
-const getTenantModel = require("../db/getTenantModel");
+const { getModelForDatabase } = require("./dbModelHelper");
 
 const findTenantByUser = async (email) => {
   const db = await getDatabase("master");
@@ -14,7 +14,10 @@ const findTenantByUser = async (email) => {
 };
 
 async function tenantExists(tenantId, email) {
-  const RegisteredUsers = getTenantModel("master", "user", "User");
+  const RegisteredUsers = getModelForDatabase({
+    databaseName: "master",
+    modelName: "User",
+  });
 
   const doesTenantExist = await RegisteredUsers.findOne({
     role: "SCHOOL",

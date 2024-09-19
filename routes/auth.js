@@ -5,7 +5,7 @@ const router = require("express").Router({
 const { tenantExists } = require("../utils/user");
 const { generateToken } = require("../utils/jwt");
 
-const getTenantModel = require("../db/getTenantModel");
+const { getModelForDatabase } = require("../utils/dbModelHelper");
 
 router.post("/registration", async (req, res) => {
   try {
@@ -16,15 +16,26 @@ router.post("/registration", async (req, res) => {
         .json("Email and password or username are required!"); // Validate it using JOI instead of this block.
     }
 
-    const User = getTenantModel("master", "user", "User");
+    const User = getModelForDatabase({
+      databaseName: "master",
+      modelName: "User",
+    });
 
     const doesTenantExist = await tenantExists(username, email);
 
-    if (doesTenantExist) {
+    const isUsernameMatched = doesTenantExist?.tenantId === username;
+    const isEmailMatched = doesTenantExist?.email === email;
+
+    if (isUsernameMatched) {
       return res.status(400).json({
         success: false,
         message:
-          "Username is already taken, please enter a different username!",
+          "Username is already taken, please enter a different Username!",
+      });
+    } else if (isEmailMatched) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already taken, please enter a different email!",
       });
     }
 
@@ -56,7 +67,10 @@ router.post("/login", async (req, res) => {
       return res.status(400).json("Email and password are required!");
     }
 
-    const User = getTenantModel("master", "user", "User");
+    const User = getModelForDatabase({
+      databaseName: "master",
+      modelName: "User",
+    });
 
     const user = await User.findOne({ email, password });
 
